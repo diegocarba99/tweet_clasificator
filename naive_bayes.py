@@ -66,6 +66,28 @@ class NaiveBayes:
 
 
 
+    def predict(self, tweet):
+        """
+        Given a tweet, predicts if the tweet has a positive feeliing or negative
+
+        :param tweet: tweet to be analized
+        :return: integer indicating the feeling of the tweet. 0 for positive, 1
+                 for negative
+        """
+
+        sum_priori = [0, 0]  # [sum_priori_N, sum_priori_P]
+
+        for w in tweet:
+            sum_priori[NEG] += self._likelihood_N[w]
+            sum_priori[POS] += self._likelihood_P[w]
+
+        sum_priori[NEG] += self._priori[NEG]
+        sum_priori[POS] += self._priori[POS]
+
+        return sum_priori.index(max(sum_priori))
+
+
+
 
 ################################################################################
 ############################## PUBLIC METHODS ##################################
