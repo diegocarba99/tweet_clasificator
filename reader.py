@@ -36,7 +36,6 @@ class Reader:
             if isinstance(sentence, str):
                 self._negative_words.extend(sentence.split())
 
-
     def get_positive_words(self):
         return self._positive_words
 

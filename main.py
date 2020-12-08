@@ -1,8 +1,8 @@
 #!/usr/bin/python
 
-from .reader import *
-from .naive_bayes import *
-from .constants import *
+from reader import *
+from naive_bayes import *
+from constants import *
 
 if __name__ == '__main__':
 

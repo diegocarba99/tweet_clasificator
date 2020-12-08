@@ -1,4 +1,4 @@
-from collections import Counter
+from collections import Counter, defaultdict
 
 """
 
@@ -28,7 +28,7 @@ class NaiveBayes:
 	                            and the value is the frequency {word:freq}
 	"""
 
-    __slots__ = ["_priori", "_likelihood_P", "_likelihood_N", "_vocabulary_P",
+    __slots__ = ["_priori", "_likelihood_P","_likelihood_N", "_vocabulary_P",
                  "_vocabulary_N"]
 
     def __init__(self, database):
@@ -44,7 +44,7 @@ class NaiveBayes:
         db_n = database.get_negative_words()
 
         # Calculation of the priori values for each target class {-,+}
-        tot = len(db_n) + sum(db_p)
+        tot = len(db_n) + len(db_p)
         self._priori = (len(db_n) / tot, len(db_p) / tot)
 
         # Create vocabulary with {word:freq} using the Counter library
@@ -62,7 +62,8 @@ class NaiveBayes:
 
         # Creation of dictionaries with likelihoods with {word:likelihood}
         self._likelihood_P = dict(zip(self._vocabulary_P.keys(), lh_p_vals))
-        self._likelihood_N = dict(zip(self._vocabulary_P.keys(), lh_n_vals))
+        self._likelihood_N = dict(zip(self._vocabulary_N.keys(), lh_n_vals))
+
 
 
 
