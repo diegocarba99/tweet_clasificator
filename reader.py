@@ -1,4 +1,5 @@
 import pandas as pd
+from constants import *
 
 """
 
@@ -19,8 +20,11 @@ class Reader:
 		"""
 
         # Read the CSV file, which is separated by semicolons (;)
-        #self._df = pd.read_csv(database, sep=';')
-        self._df = pd.read_csv(database, sep=';', nrows=n)
+        if TRIM_DATASET:
+            self._df = pd.read_csv(database, sep=';', nrows=n)
+        else:
+            self._df = pd.read_csv(database, sep=';')
+
         self._df.sample(frac=1, random_state=0)
         self._df['tweetText'] = self._df['tweetText'].apply(str)
 
@@ -53,6 +57,9 @@ class Reader:
 
         #for e in test['tweetText']:
         #    print(e)
+
+        print(f'shape train - {train.shape}')
+        print(f'shape test - {test.shape}')
 
 
         return negative_words, positive_words, test

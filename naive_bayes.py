@@ -54,8 +54,9 @@ class NaiveBayes:
         self._vocabulary_N = dict(sorted(self._vocabulary_N.items(), key=lambda item: item[1]))
 
         # Triming the dictionary up to a length
-        self._vocabulary_P = dict(list(self._vocabulary_P .items())[:tam_dict])
-        self._vocabulary_N = dict(list(self._vocabulary_N.items())[:tam_dict])
+        if TRIM_DICT or tam_dict == 300000:
+            self._vocabulary_P = dict(list(self._vocabulary_P .items())[:tam_dict])
+            self._vocabulary_N = dict(list(self._vocabulary_N.items())[:tam_dict])
 
 
         # Calculus of lenghts that will be used in the likelihood calculus
@@ -96,37 +97,41 @@ class NaiveBayes:
 
         sum_priori = [0, 0]  # [sum_priori_N, sum_priori_P]
 
-        pp, pn = [],[]
+        yes, no = 0, 0
 
         for w in tweet.split():
+            #print(w)
             if w in self._likelihood_N:
+                yes += 1
                 sum_priori[NEG] += math.log(self._likelihood_N[w])
-                pn.append(math.log(self._likelihood_N[w]))
             else:
+                no += 1
+                #print(w)
                 sum_priori[NEG] += math.log(1/self._len_vocab)
-                pn.append(math.log(1/self._len_vocab))
             if w in self._likelihood_P:
+                yes += 1
                 sum_priori[POS] += math.log(self._likelihood_P[w])
-                pp.append(math.log(self._likelihood_P[w]))
             else:
+                no += 1
+                #print(w)
                 sum_priori[POS] += math.log(1 / self._len_vocab)
-                pp.append(math.log(1 / self._len_vocab))
 
         sum_priori[NEG] += math.log(self._priori[NEG])
-        pn.append(math.log(self._priori[NEG]))
-
         sum_priori[POS] += math.log(self._priori[POS])
-        pp.append(math.log(self._priori[POS]))
+
+        #print(yes, no)
 
 
-       # #for e in pn:
-        #    print(e, end=' + ')
-#        print("{0:.3f}".format(sum_priori[NEG]))
- #       for e in pp:
-  #          print(e, end=' + ')
-   #     print("{0:.3f}".format(sum_priori[POS]), end='\n')
 
-    #    print(1/self._len_vocab, math.log(1/self._len_vocab))
+        # for e in pn:
+        #     print(e, end=' + ')
+        # print("{0:.3f}".format(sum_priori[NEG]))
+        #
+        # for e in pp:
+        #     print(e, end=' + ')
+        # print("{0:.3f}".format(sum_priori[POS]), end='\n')
+        #
+        # print(1/self._len_vocab, math.log(1/self._len_vocab))
 
 
 
@@ -192,10 +197,16 @@ class NaiveBayes:
 
     def print_metrics(self):
         print("--- METRICS ---------------------------------------------------")
-        print(f'Accuracy:    {self._metrics[ACCURACY]}')
-        print(f'Precision:   {self._metrics[PRECISION]}')
-        print(f'Recall:      {self._metrics[RECALL]}')
-        print(f'Specificity: {self._metrics[SPECIFICITY]}')
+        print(f'ACC{self._metrics[ACCURACY]} \t PRE:{self._metrics[PRECISION]}')
+        print(f'REC:{self._metrics[RECALL]} \t SPE:{self._metrics[SPECIFICITY]}')
+
+    def get_acc(self):
+        return self._metrics[ACCURACY]
+
+    def clear(self):
+        self._confusion_matrix = [0, 0, 0, 0]
+        self._metrics = [0, 0, 0, 0]
+
 
     ############################################################################
     ############################## PRIVATE METHODS #############################
