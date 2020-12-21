@@ -2,12 +2,6 @@ from collections import Counter, defaultdict
 from constants import *
 import math
 
-import json
-
-"""
-
-"""
-
 
 class NaiveBayes:
     """
@@ -30,61 +24,61 @@ class NaiveBayes:
 	                            database with their frequency corresponding to
 	                            the 'Positive' target class. The key is the word
 	                            and the value is the frequency {word:freq}
+    @attr   _conf_matrix        Confusion matrix of the models results
+    @attr   _metrics            Metrics matrix of the models results
+    @attr   _len_vocab          Length of the whole word vocabulary
 	"""
 
-    __slots__ = ["_priori", "_likelihood_P","_likelihood_N", "_vocabulary_P",
-                 "_vocabulary_N", "_confusion_matrix", "_metrics", "_len_vocab"]
+    __slots__ = ["_priori", "_lhP", "_lhN", "_vocabP","_vocabN",
+                 "_conf_matrix", "_metrics", "_len_vocab"]
 
-    def __init__(self, db_n, db_p, tam_dict):
+    def __init__(self, ln, lp, tam_dict=1.0):
+        """
+        Constructor of the NaiveBayes class. Creates a vocabulary and likelihood
+        dictionary for the positive and negative classes.
+
+        :param ln: list of the words in negative tweets
+        :param lp: list of the words in positive tweets
+        :param tam_dict: percentage of the dictionary to trim up to
         """
 
-        @:param database    object from the reader class containing the data
-		"""
-
         # Calculation of the priori values for each target class {-,+}
-        tot = len(db_n) + len(db_p)
-        self._priori = ( (len(db_n)+L) / ((tot)+L*R), (len(db_p)+L) / ((tot)+L*R))
+        tot = len(ln) + len(lp)
+        self._priori = (len(ln) / tot, len(lp) / tot)
 
         # Create vocabulary with {word:freq} using the Counter library
-        self._vocabulary_P = dict(Counter(db_p))
-        self._vocabulary_N = dict(Counter(db_n))
+        self._vocabP = dict(Counter(lp))
+        self._vocabN = dict(Counter(ln))
 
         # Order dictionary by value
-        self._vocabulary_P = dict(sorted(self._vocabulary_P.items(), key=lambda item: item[1]))
-        self._vocabulary_N = dict(sorted(self._vocabulary_N.items(), key=lambda item: item[1]))
+        self._vocabP = dict(sorted(self._vocabP.items(), key=lambda item: item[1], reverse=True))
+        self._vocabN = dict(sorted(self._vocabN.items(), key=lambda item: item[1], reverse=True))
 
-        # Triming the dictionary up to a length
-        if TRIM_DICT or tam_dict == 300000:
-            self._vocabulary_P = dict(list(self._vocabulary_P .items())[:tam_dict])
-            self._vocabulary_N = dict(list(self._vocabulary_N.items())[:tam_dict])
-
-
-        # Calculus of lenghts that will be used in the likelihood calculus
-        n_p = sum(self._vocabulary_P.values())
-        n_n = sum(self._vocabulary_N.values())
-        len_vocab = max(len(self._vocabulary_P), len(self._vocabulary_N))
-        self._len_vocab = len_vocab
+        # Calculus of lengths that will be used in the likelihood calculus
+        n_p = sum(self._vocabP.values())
+        n_n = sum(self._vocabN.values())
+        self._len_vocab = max(len(self._vocabP), len(self._vocabN))
 
         # Likelihood values for each target class
-        lh_p_vals = [(nk + L) / (n_p + len_vocab) for nk in self._vocabulary_P.values()]
-        lh_n_vals = [(nk + L) / (n_n + len_vocab) for nk in self._vocabulary_N.values()]
+        lh_p_vals = [nk / (n_p + self._len_vocab) for nk in self._vocabP.values()]
+        lh_n_vals = [nk / (n_n + self._len_vocab) for nk in self._vocabN.values()]
 
         # Creation of dictionaries with likelihoods with {word:likelihood}
-        self._likelihood_P = dict(zip(self._vocabulary_P.keys(), lh_p_vals))
-        self._likelihood_N = dict(zip(self._vocabulary_N.keys(), lh_n_vals))
+        self._lhP = dict(zip(self._vocabP.keys(), lh_p_vals))
+        self._lhN = dict(zip(self._vocabN.keys(), lh_n_vals))
 
-        print("likelihood negativo length - ", len(self._likelihood_N))
-        print("likelihood positivo length - ", len(self._likelihood_P))
+        # Size of the trimming of the vocabulary
+        tam_p = int(len(self._lhP) * tam_dict)
+        tam_n = int(len(self._lhN) * tam_dict)
 
+        # Trimming the dictionary up to a length
+        if TRIM_DICT:
+            self._lhP = dict(list(self._lhP.items())[:tam_p])
+            self._lhN = dict(list(self._lhN.items())[:tam_n])
 
-
-
-        self._confusion_matrix = [0, 0, 0, 0]
+        # Initialization of the matrices
+        self._conf_matrix = [0, 0, 0, 0]
         self._metrics = [0, 0, 0, 0]
-
-    ############################################################################
-    ############################## PUBLIC METHODS ##############################
-    ############################################################################
 
     def classify(self, tweet):
         """
@@ -97,125 +91,117 @@ class NaiveBayes:
 
         sum_priori = [0, 0]  # [sum_priori_N, sum_priori_P]
 
-        yes, no = 0, 0
-
         for w in tweet.split():
-            #print(w)
-            if w in self._likelihood_N:
-                yes += 1
-                sum_priori[NEG] += math.log(self._likelihood_N[w])
-            else:
-                no += 1
-                #print(w)
+            if w in self._lhN:
+                sum_priori[NEG] += math.log(self._lhN[w])
+            elif LAPLACE_SMOOTHING:
                 sum_priori[NEG] += math.log(1/self._len_vocab)
-            if w in self._likelihood_P:
-                yes += 1
-                sum_priori[POS] += math.log(self._likelihood_P[w])
-            else:
-                no += 1
-                #print(w)
+
+            if w in self._lhP:
+                sum_priori[POS] += math.log(self._lhP[w])
+            elif LAPLACE_SMOOTHING:
                 sum_priori[POS] += math.log(1 / self._len_vocab)
 
         sum_priori[NEG] += math.log(self._priori[NEG])
         sum_priori[POS] += math.log(self._priori[POS])
 
-        #print(yes, no)
-
-
-
-        # for e in pn:
-        #     print(e, end=' + ')
-        # print("{0:.3f}".format(sum_priori[NEG]))
-        #
-        # for e in pp:
-        #     print(e, end=' + ')
-        # print("{0:.3f}".format(sum_priori[POS]), end='\n')
-        #
-        # print(1/self._len_vocab, math.log(1/self._len_vocab))
-
-
-
         return sum_priori.index(max(sum_priori))
 
-
     def predict(self, test):
+        """
+        Given a test set, predicts which class do each of the tweets correspond
+        to and calculates the confusion matrix
 
-        #print("Shape of test", test.shape)
+        :param test: Pandas DataFrame containing the test set
+        """
+
+        # For every tweet in the test set
         for i in range(test.shape[0]):
+
+            # Classify tweet
             tweet = self.classify(test.iloc[i, 1])
-            clase = test.iloc[i,3]
 
-            #print(clase,"-",tweet, end='\n\n')
+            # Ground truth class
+            clase = test.iloc[i, 3]
 
+            # Comparison of prediction and ground truth
             if clase and tweet:
-                self._confusion_matrix[TP] += 1
+                self._conf_matrix[TP] += 1
             elif clase and not tweet:
-                self._confusion_matrix[FN] += 1
+                self._conf_matrix[FN] += 1
             elif not clase and tweet:
-                self._confusion_matrix[FP] += 1
+                self._conf_matrix[FP] += 1
             elif not clase and not tweet:
-                self._confusion_matrix[TN] += 1
-
+                self._conf_matrix[TN] += 1
 
     def calculate_metrics(self):
+        """
+        After predicting a test set, calculate the performance metrics
+        """
 
-        tp = self._confusion_matrix[TP]
-        fn = self._confusion_matrix[FN]
-        fp = self._confusion_matrix[FP]
-        tn = self._confusion_matrix[TN]
+        # Get the confusion matrix values
+        tp = self._conf_matrix[TP]
+        fn = self._conf_matrix[FN]
+        fp = self._conf_matrix[FP]
+        tn = self._conf_matrix[TN]
 
-        metrics = [None] * 4
-
+        # Calculate performance metrics
         try:
             self._metrics[ACCURACY] = (tp + tn) / (tp + tn + fp + fn)
         except ZeroDivisionError as error:
             self._metrics[ACCURACY] = 0
-
         try:
             self._metrics[PRECISION] = tp / (tp + fp)
         except ZeroDivisionError as error:
             self._metrics[PRECISION] = 0
-
         try:
             self._metrics[RECALL] = tp / (tp + fn)
         except ZeroDivisionError as error:
             self._metrics[RECALL] = 0
-
         try:
             self._metrics[SPECIFICITY] = tn / (tn + fp)
         except ZeroDivisionError as error:
             self._metrics[SPECIFICITY] = 0
 
-        return self._metrics
 
 
     def print_confusion_matrix(self):
+        """
+        Print the confusion matrix in a pretty way
+        """
         print("--- CONFUSION MATRIX ------------------------------------------")
-        print(f'TP:{self._confusion_matrix[TP]} | FN:{self._confusion_matrix[FN]}')
-        print(f'FP:{self._confusion_matrix[FP]} | TN:{self._confusion_matrix[TN]}')
+        print(f'TP:{self._conf_matrix[TP]} | FN:{self._conf_matrix[FN]}')
+        print(f'FP:{self._conf_matrix[FP]} | TN:{self._conf_matrix[TN]}')
 
 
     def print_metrics(self):
+        """
+        Print the performance metrics in a pretty way
+        """
         print("--- METRICS ---------------------------------------------------")
         print(f'ACC{self._metrics[ACCURACY]} \t PRE:{self._metrics[PRECISION]}')
         print(f'REC:{self._metrics[RECALL]} \t SPE:{self._metrics[SPECIFICITY]}')
 
+    def print_simple_metrics(self):
+        """
+        Print the confusion matrix in a simple way
+        """
+        print(f'ACC[{self._metrics[ACCURACY]:.2f}] \t PRE[{self._metrics[PRECISION]:.2f}] \t REC[{self._metrics[RECALL]:.2f}] \t SPE[{self._metrics[SPECIFICITY]:.2f}]')
+
+    def print_simple_matrix(self):
+        """
+        Print the performance metrics in a pretty way
+        """
+        print(f'TP[{self._conf_matrix[TP]}] - FN[{self._conf_matrix[FN]}] - FP[{self._conf_matrix[FP]}] - TN[{self._conf_matrix[TN]}]')
+
+
     def get_acc(self):
+        """
+        Get the accuracy of the tested method
+        :return: accuracy of the method
+        """
         return self._metrics[ACCURACY]
 
-    def clear(self):
-        self._confusion_matrix = [0, 0, 0, 0]
-        self._metrics = [0, 0, 0, 0]
 
-
-    ############################################################################
-    ############################## PRIVATE METHODS #############################
-    ############################################################################7
-
-
-    def print_dicts(self):
-        print(json.dumps(self._likelihood_P, indent=1))
-
-        print(json.dumps(self._likelihood_N, indent=1))
 
 

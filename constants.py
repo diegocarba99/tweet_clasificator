@@ -1,26 +1,26 @@
+################################################################################
+############################# EXECUTION OPTIONS ################################
+################################################################################
 RAW_DATASET = "database/SentimentAnalysisDataset.csv"
 STEMMED_DATASET = "database/FinalStemmedSentimentAnalysisDataset.csv"
 SHORT_STEMMED_DATASET = "database/FinalStemmedSentimentAnalysisDataset_Short.csv"
-
-NEG = 0
-POS = 1
-
-L = 1  # Laplace smoothing - l = 1
-R = 2  # R value of Laplace smoothing - R = 2
-
-
 TRIM_DICT = False
 TRIM_DATASET = False
-
+CROSS_VAL = False
+LAPLACE_SMOOTHING = False
 
 ################################################################################
-############################## METRICS INDEXES #################################
+############################# PROGRAM CONSTANTS ################################
 ################################################################################
-ACCURACY = 0
-PRECISION = 1
-RECALL = 2
-SPECIFICITY = 3
-TP = 0
-TN = 3
-FP = 2
-FN = 1
+NEG = 0  # Negative sentiment index
+POS = 1  # Positive sentiment index
+L = 1  # Laplace smoothing - l = 1
+R = 2  # R value of Laplace smoothing - R = 2
+ACCURACY = 0  # Confusion matrix index
+PRECISION = 1  # Confusion matrix index
+RECALL = 2  # Confusion matrix index
+SPECIFICITY = 3  # Confusion matrix index
+TP = 0  # Metrics matrix index
+TN = 3  # Metrics matrix index
+FP = 2  # Metrics matrix index
+FN = 1  # Metrics matrix index
